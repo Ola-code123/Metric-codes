@@ -6,10 +6,8 @@ Die Datensätze UNSW-NB15 und NSL-KDD sind hier verfügbar.
 Die Dateiennamen beschreiben folgende Analysen:
 
 SHAP:
-accuracyshap = Genauigkeitsanalyse mit SHAP und UNSW-NB15
-|    |    |
-accuracyshap2 = Genauigkeitsanalyse mit SHAP und NSL-KDD
-|    |    |
+- accuracyshap = Genauigkeitsanalyse mit SHAP und UNSW-NB15
+- accuracyshap2 = Genauigkeitsanalyse mit SHAP und NSL-KDD
 efficiencyshap = Effizienzanalyse mit SHAP und UNSW-NB15
 efficiencyshap2 = Effizienzanalyse mit SHAP und NSL-KDD
 stabilityshap = Stabilitätsanalyse mit SHAP und UNSW-NB15
