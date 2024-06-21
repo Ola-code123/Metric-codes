@@ -19,11 +19,11 @@ col_names = [
     "dst_host_rerror_rate", "dst_host_srv_rerror_rate", "label"
 ]
 
-# Load NSL-KDD dataset
+# Add paths to the NSL-KDD train and test dataset
 train_data = pd.read_csv('...', names=col_names)
 test_data = pd.read_csv('...', names=col_names)
 
-# Encode 
+# Encoding with LabelEncoder
 encoder = LabelEncoder()
 categorical_columns = ['protocol_type', 'service', 'flag']
 for column in categorical_columns:
@@ -37,16 +37,19 @@ attack_mapping = {
     'ftp_write': 'R2L', 'guess_passwd': 'R2L', 'imap': 'R2L', 'multihop': 'R2L', 'phf': 'R2L', 'spy': 'R2L', 'warezclient': 'R2L', 'warezmaster': 'R2L',
     'buffer_overflow': 'U2R', 'loadmodule': 'U2R', 'perl': 'U2R', 'rootkit': 'U2R'
 }
+
 train_data['label'] = train_data['label'].map(attack_mapping).fillna('Unknown')
 test_data['label'] = test_data['label'].map(attack_mapping).fillna('Unknown')
 
-
+# Encoding the labels into numerical format
 encoder.fit(pd.concat([train_data['label'], test_data['label']]))
 y_training = encoder.transform(train_data['label'])
 y_testing = encoder.transform(test_data['label'])
 
 
 feature_cols = [col for col in col_names if col not in ('label', 'num_outbound_cmds')]
+
+# Prepare data
 X_training = train_data[feature_cols]
 X_testing = test_data[feature_cols]
 
@@ -59,23 +62,27 @@ X_testing = scaler.transform(X_testing)
 model = RandomForestClassifier(n_estimators=100, random_state=42)
 model.fit(X_training, y_training)
 
-# Starting LIME explainer
+# Initializie LIME explainer
 explainer = LimeTabularExplainer(X_training, feature_names=feature_cols, class_names=encoder.classes_, discretize_continuous=True)
 
-# Function to analyze completness with LIME 
+# Function to analyze how feature importance changes with perturbation
 def analyze_completness(sample_index, num_features=5):
+    # Generate the sample and its class
     original_sample = X_testing[sample_index]
     original_class_index = model.predict(original_sample.reshape(1, -1))[0]
     original_class = encoder.classes_[original_class_index]
     print(f"Original attack category: {original_class} (Code: {original_class_index})\n")
 
+    # Generate an explanation for the sample
     explanation = explainer.explain_instance(original_sample, model.predict_proba, num_features=num_features)
     feature_importances = {feature: weight for feature, weight in explanation.as_list()}
 
+    # Print the initial feature importances
     print("Top initial feature importances:")
     for feature, weight in sorted(feature_importances.items(), key=lambda item: item[1], reverse=True):
         print(f"    {feature}: {weight:.4f}")
 
+    # Perturb features and analyze impact
     perturbation_levels = np.linspace(0, 1, 11)
     for perturbation in perturbation_levels:
         perturbed_sample = original_sample.copy() * (1 - perturbation)
@@ -100,5 +107,5 @@ def analyze_completness(sample_index, num_features=5):
         plt.title(f'Feature Importances at Perturbation {perturbation:.1f}')
         plt.show()
 
-
+# Analyzing first sample
 analyze_completness(0)

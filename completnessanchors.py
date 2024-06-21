@@ -5,9 +5,11 @@ from sklearn.preprocessing import LabelEncoder, StandardScaler
 import matplotlib.pyplot as plt
 from alibi.explainers import AnchorTabular
 
-# Load and read datasets
+# Add paths to UNSW-NB15 train and test datasets
 train_path = '...'
 test_path = '...'
+
+# Load datasets
 train_data = pd.read_csv(train_path)
 test_data = pd.read_csv(test_path)
 
@@ -30,10 +32,10 @@ if 'id' in train_data.columns:
     train_data.drop('id', axis=1, inplace=True)
     test_data.drop('id', axis=1, inplace=True)
 
-
+# Combine test and train dataset for preprocessing
 combined_data = pd.concat([train_data, test_data])
 
-# Encode variables
+# Encoding with LabeEncoder
 categorical_cols = combined_data.select_dtypes(include=['object']).columns
 label_encoders = {}
 for col in categorical_cols:
@@ -48,7 +50,7 @@ test_data = combined_data.iloc[len(train_data):]
 
 feature_names = train_data.drop(['label', 'attack_cat'], axis=1).columns.tolist()
 
-# Drop columns
+# Prepare datasets
 X_training = train_data.drop(['label', 'attack_cat'], axis=1).values
 y_train_attack_cat = train_data['attack_cat'].astype(int)
 X_testing = test_data.drop(['label', 'attack_cat'], axis=1).values
@@ -63,10 +65,11 @@ X_testing = scaler.transform(X_testing)
 attack_cat_model = RandomForestClassifier(n_estimators=100, random_state=42)
 attack_cat_model.fit(X_training, y_train_attack_cat)
 
-# Starting Anchor explainer
+# Intialize Anchor explainer
 explainer = AnchorTabular(predictor=attack_cat_model.predict, feature_names=feature_names)
 explainer.fit(X_training)
 
+# Plotting the feature importances
 def plot_feature_importances(features, values, perturbation):
     plt.figure(figsize=(10, 5))
     plt.bar(features, values, color='skyblue')
@@ -77,6 +80,7 @@ def plot_feature_importances(features, values, perturbation):
     plt.tight_layout()
     plt.show()
 
+# Plotting the perturbation effects
 def plot_perturbation_effects(perturbation_results):
     perturbations = [result[0] for result in perturbation_results]
     precisions = [result[2] for result in perturbation_results]
@@ -98,12 +102,15 @@ def plot_perturbation_effects(perturbation_results):
     plt.legend(loc='upper right')
     plt.show()
 
+# Function to analyze how feature importance changes with perturbation 
 def analyze_completeness(sample_index, threshold=0.75):
+    # Generate a single sample and its original attack category
     sample = X_testing[sample_index]
     original_prediction = attack_cat_model.predict([sample])[0]
     original_attack_cat = attack_categories.get(original_prediction, 'Unknown')
     print(f"Original attack category: {original_attack_cat} (Code: {original_prediction})\n")
-    
+
+    # Generate an explanation for the sample
     explanation = explainer.explain(sample, threshold=threshold)
     print("Initial Anchor:", explanation.anchor if explanation.anchor else "No anchor formed")
     print("Initial Precision: %.2f" % explanation.precision)
@@ -122,6 +129,7 @@ def analyze_completeness(sample_index, threshold=0.75):
                 print(f"Feature name '{feature_name}' from anchor '{condition}' not found in feature list.")
                 continue
 
+        # Perturb features and analyze impact
         for perturbation in np.linspace(0, 1, 11):
             perturbed_sample = np.array(sample, copy=True)
             current_values = []
@@ -151,5 +159,6 @@ def analyze_completeness(sample_index, threshold=0.75):
 
         plot_perturbation_effects(perturbation_results)
 
+# Analyzing first sample
 analyze_completeness(0, threshold=0.75)
 

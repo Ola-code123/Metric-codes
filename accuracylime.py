@@ -5,22 +5,23 @@ from sklearn.preprocessing import OrdinalEncoder
 from lime.lime_tabular import LimeTabularExplainer
 import re
 
-# Paths to the dataset files
+# Add paths to the UNSW-NB15 train and test dataset files
 train_path = '...'
 test_path = '...'
 
+# Load training and testing data
 train_data = pd.read_csv(train_path)
 test_data = pd.read_csv(test_path)
 
 cat_cols = ['proto', 'service', 'state', 'attack_cat']
 
-# Encoding
+# Encoding with OrdinalEncoder
 encoder = OrdinalEncoder(handle_unknown='use_encoded_value', unknown_value=-1)
 encoder.fit(train_data[cat_cols])  
 train_data[cat_cols] = encoder.transform(train_data[cat_cols])  
 test_data[cat_cols] = encoder.transform(test_data[cat_cols])  
 
-# inverse mappings 
+# Inverse mappings from encoded values back to original categorical values
 inverse_mappings = {}
 for idx, col in enumerate(cat_cols):
     # Map encoded values back to original 
@@ -35,13 +36,13 @@ def decode_feature_name(feature_name):
             return f"{col}_{mapping[int(feature_name)]}"
     return feature_name
 
-# Drop columns
+# Prepare feature and target 
 X_training = train_data.drop(['id', 'label', 'attack_cat'], axis=1)
 y_training = train_data['label']
 X_testing = test_data.drop(['id', 'label', 'attack_cat'], axis=1)
 y_testing = test_data['label']
 
-# Random Forest model Training
+# Train a Random Forest classifier
 model = RandomForestClassifier(n_estimators=100, random_state=42)
 model.fit(X_training, y_training)
 
@@ -51,7 +52,7 @@ sample_indices = np.random.choice(X_testing.shape[0], 300, replace=False)
 X_testing_sample = X_testing.iloc[sample_indices]
 y_testing_sample = y_testing.iloc[sample_indices]
 
-# Starting LIME explainer with the sampled testing data
+# Initialize LIME explainer with the sampled testing data
 explainer = LimeTabularExplainer(X_testing_sample.values,
                                  feature_names=X_testing_sample.columns.tolist(),
                                  class_names=['Non-Attack', 'Attack'],

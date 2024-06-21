@@ -6,7 +6,7 @@ from lime.lime_tabular import LimeTabularExplainer
 from sklearn.preprocessing import OrdinalEncoder
 import re
 
-# Paths for the NSL-KDD datasets
+# Paths for the NSL-KDD train and test datasets
 train_path = '...'
 test_path = '...'
 
@@ -23,25 +23,26 @@ col_names = ["duration", "protocol_type", "service", "flag", "src_bytes",
              "dst_host_rerror_rate", "dst_host_srv_rerror_rate", "label"]
 
 
+# Load training and testing data with column names
 train_data = pd.read_csv(train_path, header=None, names=col_names)
 test_data = pd.read_csv(test_path, header=None, names=col_names)
 
-
+# List of categorical columns
 cat_cols = ["protocol_type", "service", "flag"]
 
-# Encoding
+# Ordinal encoder for categorical features
 encoder = OrdinalEncoder(handle_unknown='use_encoded_value', unknown_value=-1)
 
 train_data[cat_cols] = encoder.fit_transform(train_data[cat_cols])
 test_data[cat_cols] = encoder.transform(test_data[cat_cols])
 
-# Drop columns
+# Prepare datasets with target labels
 X_training = train_data.drop('label', axis=1)
 y_training = train_data['label']
 X_testing = test_data.drop('label', axis=1)
 y_testing = test_data['label']
 
-# Random Forest model Training
+# Train a Random Forest classifier
 model = RandomForestClassifier(n_estimators=100, random_state=42)
 model.fit(X_training, y_training)
 
@@ -52,7 +53,7 @@ sample_indices = np.random.choice(X_testing.shape[0], 300, replace=False)
 X_testing_sample = X_testing.iloc[sample_indices]
 y_testing_sample = y_testing.iloc[sample_indices]
 
-# Starting LIME explainer with the sampled testing data
+# Initialize LIME explainer with the sampled testing data
 explainer = LimeTabularExplainer(X_testing_sample.values,
                                  feature_names=X_testing_sample.columns.tolist(),
                                  class_names=['Non-Attack', 'Attack'],

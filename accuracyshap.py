@@ -4,30 +4,30 @@ from sklearn.ensemble import RandomForestClassifier
 from sklearn.preprocessing import OrdinalEncoder
 import shap
 
-# Paths to the dataset files
+# Paths to the UNSW-NB15 train and test dataset files
 train_path = '...'
 test_path = '...'
 
-
+# Load the datasets
 train_data = pd.read_csv(train_path)
 test_data = pd.read_csv(test_path)
 
 
 cat_cols = ['proto', 'service', 'state', 'attack_cat']
 
-# Encoding
+# Encoding with OrdinalEncoder
 encoder = OrdinalEncoder(handle_unknown='use_encoded_value', unknown_value=-1)
 
 train_data[cat_cols] = encoder.fit_transform(train_data[cat_cols])
 test_data[cat_cols] = encoder.transform(test_data[cat_cols])
 
-# Drop columns
+# Prepare feature and target
 X_training = train_data.drop(['id', 'label', 'attack_cat'], axis=1)
 y_training = train_data['label']
 X_testing = test_data.drop(['id', 'label', 'attack_cat'], axis=1)
 y_testing = test_data['label']
 
-# Random Forest model Training
+# Train a Random Forest classifier
 model = RandomForestClassifier(n_estimators=100, random_state=42)
 model.fit(X_training, y_training)
 
@@ -37,7 +37,7 @@ sample_indices = np.random.choice(X_testing.index, 300, replace=False)
 one_index = sample_indices[0]  
 X_one_instance = X_testing.loc[one_index:one_index]
 
-# Starting SHAP
+# Initialize SHAP
 explainer = shap.TreeExplainer(model)
 shap_values_instance = explainer.shap_values(X_one_instance)
 

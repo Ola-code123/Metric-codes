@@ -5,7 +5,7 @@ from sklearn.preprocessing import LabelEncoder
 from lime import lime_tabular
 import time
 
-# Paths for the datasets NSL-KDD
+# Add paths for the NSL-KDD train and test dataset
 train_path = '...'
 test_path = '...'
 
@@ -21,31 +21,31 @@ col_names = ["duration", "protocol_type", "service", "flag", "src_bytes",
              "dst_host_srv_diff_host_rate", "dst_host_serror_rate", "dst_host_srv_serror_rate",
              "dst_host_rerror_rate", "dst_host_srv_rerror_rate", "label"]
 
-# Load the datasets
+# Load training and testing data without headers, with specified column names
 train_data = pd.read_csv(train_path, header=None, names=col_names)
 test_data = pd.read_csv(test_path, header=None, names=col_names)
 
-# Label encoding 
+# Label encoding for categorical columns 
 cat_cols = ["protocol_type", "service", "flag"]
 for col in cat_cols:
     le = LabelEncoder()
     train_data[col] = le.fit_transform(train_data[col])
     test_data[col] = le.transform(test_data[col])
 
-# Drop columns
+# Preparing feature and target datasets for training and testing
 X_training = train_data.drop('label', axis=1)
 y_training = train_data['label']
 X_testing = test_data.drop('label', axis=1)
 y_testing = test_data['label']
 
-# Random Forest model Training
+# Initialize and train a Random Forest classifier
 model = RandomForestClassifier(n_estimators=100, random_state=42)
 model.fit(X_training, y_training)
 
 # Sample sizes 
 sample_sizes = [10, 100, 1000]
 
-# Starting LIME explainer
+# Initialize a LIME explainer for the training data
 explainer = lime_tabular.LimeTabularExplainer(
     training_data=X_training.values,
     feature_names=X_training.columns.tolist(),
@@ -58,9 +58,12 @@ for size in sample_sizes:
     if size <= len(X_testing):
         sample_test = X_testing.sample(n=size, random_state=42)
         start_time = time.time()
+        # Generate explanations for each instance in the sample
         for i in range(size):
             exp = explainer.explain_instance(sample_test.iloc[i].values, model.predict_proba, num_features=3)
         lime_time = time.time() - start_time
+        # Print the time taken to compute explanations for the sample
         print(f"LIME explanation for all {size} samples computed in {lime_time:.2f} seconds")
     else:
+        # Handling cases where the sample size exceeds available data
         print(f"Sample size {size} exceeds the number of available samples {len(X_testing)}.")

@@ -4,7 +4,7 @@ from sklearn.ensemble import RandomForestClassifier
 from sklearn.preprocessing import OrdinalEncoder
 import shap
 
-# Paths for the datasets
+# Add Paths to the NSL-KDD train and test datasets
 train_path = '...'
 test_path = '...'
 
@@ -20,17 +20,18 @@ col_names = ["duration", "protocol_type", "service", "flag", "src_bytes",
              "dst_host_srv_diff_host_rate", "dst_host_serror_rate", "dst_host_srv_serror_rate",
              "dst_host_rerror_rate", "dst_host_srv_rerror_rate", "label"]
 
+# Load training and testing data
 train_data = pd.read_csv(train_path, header=None, names=col_names)
 test_data = pd.read_csv(test_path, header=None, names=col_names)
 
 cat_cols = ["protocol_type", "service", "flag"]
 
-# Encoding 
+# Encoding with OrdinalEncoder
 encoder = OrdinalEncoder(handle_unknown='use_encoded_value', unknown_value=-1)
 train_data[cat_cols] = encoder.fit_transform(train_data[cat_cols])
 test_data[cat_cols] = encoder.transform(test_data[cat_cols])
 
-# Drop columns
+# Prepare datasets with target labels
 X_training = train_data.drop('label', axis=1)
 y_training = train_data['label']
 X_testing = test_data.drop('label', axis=1)
@@ -46,7 +47,7 @@ sample_indices = np.random.choice(X_testing.index, 300, replace=False)
 one_index = sample_indices[0]  
 X_one_instance = X_testing.loc[one_index:one_index]
 
-# Starting SHAP
+# Initialize SHAP
 explainer = shap.TreeExplainer(model)
 shap_values_instance = explainer.shap_values(X_one_instance)
 

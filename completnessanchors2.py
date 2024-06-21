@@ -19,11 +19,11 @@ col_names = [
     "dst_host_rerror_rate", "dst_host_srv_rerror_rate", "label"
 ]
 
-# Load NSL-KDD dataset
+# Add paths to the NSL-KDD train and test datasets
 train_data = pd.read_csv('...', names=col_names)
 test_data = pd.read_csv('...', names=col_names)
 
-# Encode 
+# Encoding with LabelEncoder 
 encoder = LabelEncoder()
 categorical_columns = ['protocol_type', 'service', 'flag']
 for column in categorical_columns:
@@ -43,15 +43,16 @@ attack_mapping = {
 train_data['label'] = train_data['label'].map(attack_mapping).fillna('Unknown')
 test_data['label'] = test_data['label'].map(attack_mapping).fillna('Unknown')
 
-
+# Encoding the labels into numerical format
 all_labels = pd.concat([train_data['label'], test_data['label']])
 encoder.fit(all_labels.unique())
-
 
 y_training = encoder.transform(train_data['label'])
 y_testing = encoder.transform(test_data['label'])
 
 feature_cols = [col for col in col_names if col not in ('label', 'num_outbound_cmds')]
+
+# Prepare data
 X_training = train_data[feature_cols]
 X_testing = test_data[feature_cols]
 
@@ -64,11 +65,12 @@ X_testing = scaler.transform(X_testing)
 attack_cat_model = RandomForestClassifier(n_estimators=100, random_state=42)
 attack_cat_model.fit(X_training, y_training)
 
-# Starting Anchor explainer
+# Initialize Anchor explainer
 feature_names = feature_cols
 explainer = AnchorTabular(predictor=attack_cat_model.predict, feature_names=feature_names)
 explainer.fit(X_training)
 
+# Plotting the feature importances
 def plot_feature_importances(features, values, perturbation):
     plt.figure(figsize=(10, 5))
     plt.bar(features, values, color='skyblue')
@@ -79,6 +81,7 @@ def plot_feature_importances(features, values, perturbation):
     plt.tight_layout()
     plt.show()
 
+# Plotting the perturbation effects
 def plot_perturbation_effects(perturbation_results):
     perturbations = [result[0] for result in perturbation_results]
     precisions = [result[2] for result in perturbation_results]
@@ -100,12 +103,15 @@ def plot_perturbation_effects(perturbation_results):
     plt.legend(loc='upper right')
     plt.show()
 
+# Function to analyze how feature importance changes with perturbation 
 def analyze_completeness(sample_index, threshold=0.75):
+    # Generate a single sample and its original attack category
     sample = X_testing[sample_index]
     original_prediction = attack_cat_model.predict([sample])[0]
     original_attack_cat = encoder.inverse_transform([original_prediction])[0]
     print(f"Original attack category: {original_attack_cat} (Code: {original_prediction})\n")
-    
+
+    # Generate an explanation for the sample
     explanation = explainer.explain(sample, threshold=threshold)
     print("Initial Anchor:", explanation.anchor if explanation.anchor else "No anchor formed")
     print("Initial Precision: %.2f" % explanation.precision)
@@ -124,6 +130,7 @@ def analyze_completeness(sample_index, threshold=0.75):
                 print(f"Feature name '{feature_name}' from anchor '{condition}' not found in feature list.")
                 continue
 
+        # Perturb features and analyze impact
         for perturbation in np.linspace(0, 1, 11):
             perturbed_sample = np.array(sample, copy=True)
             current_values = []
@@ -153,4 +160,5 @@ def analyze_completeness(sample_index, threshold=0.75):
 
         plot_perturbation_effects(perturbation_results)
 
+# Analyzing first sample
 analyze_completeness(0, threshold=0.75)

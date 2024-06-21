@@ -5,30 +5,30 @@ from sklearn.ensemble import RandomForestClassifier
 from sklearn.preprocessing import OrdinalEncoder
 from alibi.explainers import AnchorTabular
 
-# Paths to the dataset files
+# Add paths to the UNSW-NB15 train and test dataset files
 train_path = '...'
 test_path = '...'
 
-
+# Load the training and testing data
 train_data = pd.read_csv(train_path)
 test_data = pd.read_csv(test_path)
 
-
+# Defining categorical columns for encoding
 cat_cols = ['proto', 'service', 'state', 'attack_cat']
 
-# Encoding
+# Ordinal encoder for categorical features
 encoder = OrdinalEncoder(handle_unknown='use_encoded_value', unknown_value=-1)
 
 train_data[cat_cols] = encoder.fit_transform(train_data[cat_cols])
 test_data[cat_cols] = encoder.transform(test_data[cat_cols])
 
-# Drop columns
+# Prepare features and labels for model training
 X_training = train_data.drop(['id', 'label', 'attack_cat'], axis=1)
 y_training = train_data['label']
 X_testing = test_data.drop(['id', 'label', 'attack_cat'], axis=1)
 y_testing = test_data['label']
 
-# Random Forest model Training
+# Train a Random Forest classifier
 model = RandomForestClassifier(n_estimators=100, random_state=42)
 model.fit(X_training, y_training)
 
@@ -43,7 +43,7 @@ def predict_function(X):
         X = pd.DataFrame(X, columns=X_testing.columns)
     return model.predict(X)
 
-# Starting the Anchor explainer
+# Initialize the Anchor explainer
 explainer = AnchorTabular(predict_function, feature_names=X_testing.columns.tolist())
 explainer.fit(X_testing_sample.values, disc_perc=[25, 50, 75])
 

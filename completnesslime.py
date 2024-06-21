@@ -5,7 +5,7 @@ from sklearn.preprocessing import LabelEncoder, StandardScaler
 import matplotlib.pyplot as plt
 from lime.lime_tabular import LimeTabularExplainer
 
-# Load UNSW-NB15 dataset
+# Add the paths to UNSW-NB15 train and test dataset
 train_data = pd.read_csv('...')
 test_data = pd.read_csv('...')
 
@@ -14,18 +14,20 @@ if 'id' in train_data.columns:
     train_data.drop('id', axis=1, inplace=True)
     test_data.drop('id', axis=1, inplace=True)
 
-# Encoding
-category_columns = ['proto', 'service', 'state']  
+# List of categorical columns 
+category_columns = ['proto', 'service', 'state']
 
-
+# Combine test and train dataset for preprocessing
 combined_data = pd.concat([train_data[category_columns], test_data[category_columns]])
+
+# Encoding with LabeEncoder
 encoder = LabelEncoder()
 for column in category_columns:
     combined_data[column] = encoder.fit_transform(combined_data[column])
     train_data[column] = encoder.transform(train_data[column])
     test_data[column] = encoder.transform(test_data[column])
 
-
+# Handle missing categories and fill with 'Unknown'
 train_data['attack_cat'] = train_data['attack_cat'].fillna('Unknown').astype(str)
 test_data['attack_cat'] = test_data['attack_cat'].fillna('Unknown').astype(str)
 
@@ -40,17 +42,15 @@ reverse_attack_mapping = {v: k for k, v in attack_mapping.items()}
 train_data['attack_cat'] = train_data['attack_cat'].map(attack_mapping).fillna('Unknown')
 test_data['attack_cat'] = test_data['attack_cat'].map(attack_mapping).fillna('Unknown')
 
-
+# Encoding attack categories into labels
 all_attack_cats = pd.concat([train_data['attack_cat'], test_data['attack_cat']]).drop_duplicates()
 encoder.fit(all_attack_cats)  
 
-
+# Prepare datasets
 y_training = encoder.transform(train_data['attack_cat'])
 y_testing = encoder.transform(test_data['attack_cat'])
 
-
 exclusion_list = ['attack_cat', 'Label'] if 'Label' in train_data.columns else ['attack_cat']
-
 X_training = train_data.drop(exclusion_list, axis=1)
 X_testing = test_data.drop(exclusion_list, axis=1)
 
@@ -63,12 +63,13 @@ X_testing = scaler.transform(X_testing)
 model = RandomForestClassifier(n_estimators=100, random_state=42)
 model.fit(X_training, y_training)
 
-# Starting a LIME explainer
+# Initialize a LIME explainer
 explainer = LimeTabularExplainer(X_training, feature_names=[col for col in train_data.columns if col not in exclusion_list],
                                  class_names=encoder.classes_, discretize_continuous=True)
 
-# Function to analyze completness with LIME 
+# Function to analyze how feature importance changes with perturbation 
 def analyze_completeness(sample_index, num_features=5):
+    # Generate a single sample and its original attack category
     original_sample = X_testing[sample_index]
     original_class_index = model.predict(original_sample.reshape(1, -1))[0]
     original_class_code = encoder.classes_[original_class_index]
@@ -76,13 +77,16 @@ def analyze_completeness(sample_index, num_features=5):
 
     print(f"Original attack category: {original_class_name} (Code: {original_class_index})\n")
 
+    # Generate an explanation for the sample
     explanation = explainer.explain_instance(original_sample, model.predict_proba, num_features=num_features)
     feature_importances = {feature: weight for feature, weight in explanation.as_list()}
 
+    # Print the initial feature importances
     print("Top initial feature importances:")
     for feature, weight in sorted(feature_importances.items(), key=lambda item: item[1], reverse=True):
         print(f"    {feature}: {weight:.4f}")
 
+    # Perturb features and analyze impact
     perturbation_levels = np.linspace(0, 1, 11)
     for perturbation in perturbation_levels:
         perturbed_sample = original_sample.copy() * (1 - perturbation)
@@ -113,6 +117,6 @@ def analyze_completeness(sample_index, num_features=5):
         plt.tight_layout()  
         plt.show()
 
-
+# Analyzing first sample
 analyze_completeness(0)
 

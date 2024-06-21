@@ -5,7 +5,7 @@ from sklearn.ensemble import RandomForestClassifier
 from alibi.explainers import AnchorTabular
 from sklearn.preprocessing import OrdinalEncoder
 
-# Paths for the NSL-KDD datasets
+# Add paths to the NSL-KDD train and test datasets
 train_path = '...'
 test_path = '...'
 
@@ -22,25 +22,26 @@ col_names = ["duration", "protocol_type", "service", "flag", "src_bytes",
              "dst_host_rerror_rate", "dst_host_srv_rerror_rate", "label"]
 
 
+# Load training and testing data with above column names
 train_data = pd.read_csv(train_path, header=None, names=col_names)
 test_data = pd.read_csv(test_path, header=None, names=col_names)
 
 
 cat_cols = ["protocol_type", "service", "flag"]
 
-# Encoding
+# Ordinal encoder for the categorical features
 encoder = OrdinalEncoder(handle_unknown='use_encoded_value', unknown_value=-1)
 
 train_data[cat_cols] = encoder.fit_transform(train_data[cat_cols])
 test_data[cat_cols] = encoder.transform(test_data[cat_cols])
 
-# Drop columns
+# Prepare training and testing datasets 
 X_training = train_data.drop('label', axis=1)
 y_training = train_data['label']
 X_testing = test_data.drop('label', axis=1)
 y_testing = test_data['label']
 
-# Random Forest model Training
+# Train a Random Forest classifier
 model = RandomForestClassifier(n_estimators=100, random_state=42)
 model.fit(X_training, y_training)
 

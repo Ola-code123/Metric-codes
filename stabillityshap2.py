@@ -5,7 +5,7 @@ from sklearn.preprocessing import OrdinalEncoder
 import shap
 import matplotlib.pyplot as plt
 
-# Paths for the NSL-KDD datasets
+# Add paths to the NSL-KDD train and test datasets
 train_path = '...'
 test_path = '...'
 
@@ -21,10 +21,11 @@ col_names = ["duration", "protocol_type", "service", "flag", "src_bytes",
              "dst_host_srv_diff_host_rate", "dst_host_serror_rate", "dst_host_srv_serror_rate",
              "dst_host_rerror_rate", "dst_host_srv_rerror_rate", "label"]
 
+# Load datasets
 train_data = pd.read_csv(train_path, header=None, names=col_names)
 test_data = pd.read_csv(test_path, header=None, names=col_names)
 
-# Features to use
+# Features for the model training
 features_reduced = ['duration', 'service', 'flag', 'src_bytes', 'dst_bytes', 'hot', 'logged_in', 
                    'num_compromised', 'num_root', 'num_file_creations', 'count', 'srv_count', 
                    'serror_rate', 'srv_serror_rate', 'same_srv_rate', 'dst_host_count', 
@@ -33,12 +34,12 @@ features_reduced = ['duration', 'service', 'flag', 'src_bytes', 'dst_bytes', 'ho
 
 cat_cols = ["protocol_type", "service", "flag"]  
 
-# Encoding 
+# Encoding with OrdinalEncoder
 encoder = OrdinalEncoder(handle_unknown='use_encoded_value', unknown_value=-1)
 train_data[cat_cols] = encoder.fit_transform(train_data[cat_cols])
 test_data[cat_cols] = encoder.transform(test_data[cat_cols])
 
-
+# Prepare datasets
 X_training = train_data[features_reduced]
 y_training = train_data['label']
 X_testing = test_data[features_reduced]
@@ -48,7 +49,7 @@ y_testing = test_data['label']
 model = RandomForestClassifier(n_estimators=50, max_depth=10, min_samples_leaf=4, random_state=42, n_jobs=-1)
 model.fit(X_training, y_training)
 
-# Starting SHAP explainer 
+# Initialize SHAP explainer 
 explainer = shap.TreeExplainer(model)
 
 

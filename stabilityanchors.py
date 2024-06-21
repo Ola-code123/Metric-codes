@@ -5,27 +5,28 @@ from sklearn.preprocessing import OrdinalEncoder
 from alibi.explainers import AnchorTabular
 import matplotlib.pyplot as plt
 
-# Paths to the dataset files
+# Add paths to the UNSW-NB15 train and test dataset files
 train_path = '...'
 test_path = '...'
 
+# Load datasets
 train_data = pd.read_csv(train_path)
 test_data = pd.read_csv(test_path)
 
 
 cat_cols = ['proto', 'service', 'state']
 
-# Defining features to use
+# Defining features for the model
 features_reduced = ['spkts', 'dpkts', 'sbytes', 'dbytes', 'rate', 'sttl', 'dttl', 'sload', 'dload', 
                    'sloss', 'sinpkt', 'dinpkt', 'sjit', 'djit', 'swin', 'stcpb', 'dtcpb', 'dwin', 
                    'smean', 'dmean', 'response_body_len']
 
-# Encoding 
+# Encoding with OrdinalEncoder
 encoder = OrdinalEncoder(handle_unknown='use_encoded_value', unknown_value=-1)
 train_data[cat_cols] = encoder.fit_transform(train_data[cat_cols])
 test_data[cat_cols] = encoder.transform(test_data[cat_cols])
 
-
+# Prepare datasets
 X_training = train_data[features_reduced]
 y_training = train_data['label']
 X_testing = test_data[features_reduced]
@@ -35,7 +36,7 @@ y_testing = test_data['label']
 model = RandomForestClassifier(n_estimators=50, max_depth=10, min_samples_leaf=4, random_state=42, n_jobs=-1)
 model.fit(X_training, y_training)
 
-# Starting the AnchorTabular explainer 
+# Initialize the AnchorTabular explainer 
 explainer = AnchorTabular(model.predict_proba, feature_names=features_reduced)
 explainer.fit(X_training.values, disc_perc=[10, 50, 90])  
 

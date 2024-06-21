@@ -5,15 +5,17 @@ from sklearn.preprocessing import OrdinalEncoder
 import shap
 import matplotlib.pyplot as plt
 
-# Paths to the dataset files
+# Add paths to the UNSW-NB15 train and test dataset files
 train_path = '...'
 test_path = '...'
 
+# Load the datasets
 train_data = pd.read_csv(train_path)
 test_data = pd.read_csv(test_path)
 
-# Encoding
 cat_cols = ['proto', 'service', 'state']
+
+# Encoding with OrdinalEncoder
 encoder = OrdinalEncoder(handle_unknown='use_encoded_value', unknown_value=-1)
 train_data[cat_cols] = encoder.fit_transform(train_data[cat_cols])
 test_data[cat_cols] = encoder.transform(test_data[cat_cols])
@@ -23,6 +25,7 @@ features_reduced = ['spkts', 'dpkts', 'sbytes', 'dbytes', 'rate', 'sttl', 'dttl'
                    'sloss', 'sinpkt', 'dinpkt', 'sjit', 'djit', 'swin', 'stcpb', 'dtcpb', 'dwin', 
                    'smean', 'dmean', 'response_body_len']
 
+# Prepare datasets
 X_training = train_data[features_reduced]
 y_training = train_data['label']
 X_testing = test_data[features_reduced]
@@ -32,7 +35,7 @@ y_testing = test_data['label']
 model = RandomForestClassifier(n_estimators=50, max_depth=10, min_samples_leaf=4, random_state=42, n_jobs=-1)
 model.fit(X_training, y_training)
 
-# Starting SHAP explainer 
+# Initialize SHAP explainer 
 explainer = shap.TreeExplainer(model)
 
 # Collecting top-k features across N runs
